@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI News Verification Engine</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- vis-network for Graph Visualization -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+
+    <main class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fa-solid fa-shield-halved"></i>
+                <h1>News Verifier AI</h1>
+            </div>
+            <p class="subtitle">Fact-check claims against the web using RAG and Knowledge Graphs.</p>
+        </header>
+
+        <section class="search-section glass-panel">
+            <form id="verify-form" class="search-form">
+                <div class="input-wrapper">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="query-input" placeholder="Enter a news headline or claim to verify..." required autocomplete="off" />
+                    <button type="submit" id="submit-btn">Verify</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="loading-container hidden">
+            <div class="spinner"></div>
+            <p class="loading-text">Analyzing claims and gathering evidence...</p>
+        </div>
+
+        <!-- Results Section -->
+        <section id="results-section" class="results-container hidden">
+            <!-- Top Dashboard: Verdict & Score -->
+            <div class="dashboard grid">
+                <!-- Verdict Card -->
+                <div class="card glass-panel verdict-card" id="verdict-container">
+                    <h3 class="card-title">Overall Verdict</h3>
+                    <div class="verdict-display">
+                        <i id="verdict-icon" class="fa-solid fa-circle-question"></i>
+                        <h2 id="final-verdict">Unverified</h2>
+                    </div>
+                </div>
+
+                <!-- Score Card -->
+                <div class="card glass-panel score-card">
+                    <h3 class="card-title">Confidence Score</h3>
+                    <div class="score-display">
+                        <div class="circular-progress">
+                            <span id="score-text">0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Explanation Card -->
+                <div class="card glass-panel explanation-card span-full">
+                    <h3 class="card-title"><i class="fa-solid fa-brain"></i> AI Explanation</h3>
+                    <p id="ai-explanation">Explanation will appear here.</p>
+                </div>
+            </div>
+
+            <!-- Main Content Area: Graph & Details -->
+            <div class="details-grid">
+                <!-- Left Column: Claims & Sources -->
+                <div class="details-list">
+                    <div class="glass-panel section-panel">
+                        <h3 class="card-title"><i class="fa-solid fa-list-check"></i> Broken Down Claims</h3>
+                        <div id="claims-list" class="claims-list"></div>
+                    </div>
+
+                    <div class="glass-panel section-panel">
+                        <h3 class="card-title"><i class="fa-solid fa-link"></i> Sources Used</h3>
+                        <div id="sources-list" class="sources-list"></div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Knowledge Graph -->
+                <div class="glass-panel section-panel graph-panel">
+                    <h3 class="card-title"><i class="fa-solid fa-project-diagram"></i> Knowledge Graph</h3>
+                    <div id="graph-container" class="graph-box"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Error State -->
+        <div id="error-state" class="error-container hidden glass-panel">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <h3 id="error-title">Verification Failed</h3>
+            <p id="error-message">An error occurred while verifying the claim.</p>
+        </div>
+    </main>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
