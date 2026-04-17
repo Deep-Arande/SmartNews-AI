@@ -6,7 +6,7 @@ from typing import List
 
 from app.models.schemas import VerificationRequest, VerificationResponse, VerificationDocument, ClaimResult
 from app.db.mongodb import get_db
-from app.services.search_service import search_web
+from app.services.search_service import search_web, select_diverse_urls
 from app.services.scraper_service import scrape_urls
 from app.services.credibility_service import compute_credibility
 from app.services.graph_service import build_knowledge_graph, detect_conflicts
@@ -27,7 +27,7 @@ async def verify_news(request: VerificationRequest, db=Depends(get_db)):
         logger.info("Executing web search against trusted domains...")
         search_results = await search_web(query)
         urls = [res.get('href') for res in search_results if res.get('href')]
-        urls = list(set(urls))[:3] # Limit to top 3 for speed
+        urls = select_diverse_urls(list(set(urls)))
         logger.info(f"Found {len(urls)} trusted URLs to scrape.")
         
         # 2. Scrape Content
