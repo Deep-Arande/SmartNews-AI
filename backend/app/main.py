@@ -6,6 +6,7 @@ if sys.platform == "win32":
 
 from fastapi import FastAPI
 from app.routes.verify import router as verify_router
+from app.api.premium import router as premium_router
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
 import uvicorn
 from dotenv import load_dotenv
@@ -31,12 +32,18 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_db_client():
     await connect_to_mongo()
+    from app.db.mongodb import get_db
+    from app.db.session_store import create_session_index
+    db = get_db()
+    if db is not None:
+        await create_session_index(db)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     await close_mongo_connection()
 
 app.include_router(verify_router, prefix="/verify", tags=["Verify"])
+app.include_router(premium_router, prefix="/premium", tags=["Premium"])
 
 @app.get("/")
 def root():
