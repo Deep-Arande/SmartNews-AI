@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="background-effects">
         <div class="glow glow-1"></div>
@@ -32,7 +34,8 @@
             <form id="verify-form" class="search-form">
                 <div class="input-wrapper">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input type="text" id="query-input" placeholder="Enter a news headline or claim to verify..." required autocomplete="off" />
+                    <input type="text" id="query-input" placeholder="Enter a news headline or claim to verify..."
+                        required autocomplete="off" />
                     <button type="submit" id="submit-btn">Verify</button>
                 </div>
             </form>
@@ -66,12 +69,24 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Explanation Card -->
                 <div class="card glass-panel explanation-card span-full">
                     <h3 class="card-title"><i class="fa-solid fa-brain"></i> AI Explanation</h3>
                     <p id="ai-explanation">Explanation will appear here.</p>
                 </div>
+            </div>
+
+            <!-- Premium Chat Banner -->
+            <div id="premium-banner" class="premium-banner glass-panel">
+                <div class="premium-badge"><i class="fa-solid fa-stars"></i> Premium</div>
+                <div class="premium-banner-text">
+                    <span>Want to dig deeper?</span>
+                    <p>Ask follow-up questions about this verification — powered by Gemini AI.</p>
+                </div>
+                <button id="open-premium-btn" class="btn-premium">
+                    <i class="fa-solid fa-comment-dots"></i> Ask AI
+                </button>
             </div>
 
             <!-- Main Content Area: Graph & Details -->
@@ -105,7 +120,43 @@
         </div>
     </main>
 
+    <!-- Premium Chat Panel -->
+    <div id="premium-overlay" class="premium-overlay hidden"></div>
+    <aside id="premium-panel" class="premium-panel hidden">
+        <div class="premium-panel-header">
+            <div class="premium-panel-title">
+                <i class="fa-solid fa-stars"></i>
+                <span>AI Fact-Check Assistant</span>
+                <span class="premium-label">Premium</span>
+            </div>
+            <button id="close-premium-btn" class="btn-icon" title="Close">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Session Status Bar -->
+        <div id="premium-status" class="premium-status">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">Starting session...</span>
+        </div>
+
+        <!-- Chat Messages -->
+        <div id="chat-messages" class="chat-messages">
+            <!-- populated by JS -->
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+            <textarea id="chat-input" class="chat-textarea" placeholder="Ask something about this article..." rows="1"
+                disabled></textarea>
+            <button id="chat-send-btn" class="btn-send" disabled title="Send">
+                <i class="fa-solid fa-paper-plane"></i>
+            </button>
+        </div>
+    </aside>
+
     <!-- App Logic -->
     <script src="app.js"></script>
 </body>
+
 </html>

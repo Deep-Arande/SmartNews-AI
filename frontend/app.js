@@ -2,12 +2,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('verify-form');
     const input = document.getElementById('query-input');
     const submitBtn = document.getElementById('submit-btn');
-    
+
     // UI Sections
     const loadingState = document.getElementById('loading-state');
     const resultsSection = document.getElementById('results-section');
     const errorState = document.getElementById('error-state');
-    
+
     // Result Elements
     const verdictContainer = document.getElementById('verdict-container');
     const verdictIcon = document.getElementById('verdict-icon');
@@ -15,17 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const scoreProgress = document.querySelector('.circular-progress');
     const scoreText = document.getElementById('score-text');
     const aiExplanation = document.getElementById('ai-explanation');
-    
+
     // Lists
     const claimsList = document.getElementById('claims-list');
     const sourcesList = document.getElementById('sources-list');
-    
+
     // Graph Instance
     let network = null;
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const query = input.value.trim();
         if (!query) return;
 
@@ -51,16 +51,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const data = await response.json();
-            
+
             // Populate UI Elements
             renderResults(data);
+            lastQuery = input.value.trim();
+            premiumSessionId = null;
+            premiumBanner.classList.remove('hidden');
 
             loadingState.classList.add('hidden');
             resultsSection.classList.remove('hidden');
         } catch (err) {
             console.error(err);
             loadingState.classList.add('hidden');
-            
+
             document.getElementById('error-message').textContent = err.message || 'Check if the backend is running at http://localhost:8000';
             errorState.classList.remove('hidden');
         } finally {
@@ -72,11 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Verdict
         const verdict = data.verdict || 'Unverified';
         finalVerdict.textContent = verdict;
-        
+
         // Remove previous classes
         verdictContainer.className = 'card glass-panel verdict-card';
         verdictContainer.classList.add(`verdict-${verdict}`);
-        
+
         // Update Icon based on verdict
         verdictIcon.className = '';
         if (verdict === 'True') verdictIcon.className = 'fa-solid fa-circle-check';
@@ -86,12 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. Score
         const scorePercentage = Math.round((data.score || 0) * 100);
         scoreText.textContent = `${scorePercentage}%`;
-        
+
         // Color based on score
         let scoreColor = '#f59e0b'; // Unverified yellow
         if (scorePercentage > 70) scoreColor = '#10b981'; // True green
         else if (scorePercentage < 40) scoreColor = '#ef4444'; // False red
-        
+
         scoreProgress.style.background = `conic-gradient(${scoreColor} ${scorePercentage}%, var(--border-glass) ${scorePercentage}%)`;
 
         // 3. Explanation
@@ -147,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const container = document.getElementById('graph-container');
-        
+
         // Process nodes to make them prettier
         const processNodes = graphData.nodes.map(n => {
             let color = '#3b82f6'; // default Claim color
@@ -242,4 +245,195 @@ document.addEventListener('DOMContentLoaded', () => {
 
         network = new vis.Network(container, data, options);
     }
+
+    // ─── Premium Chat Module ────────────────────────────────────────────────
+
+    const API_BASE = 'http://localhost:8000';
+
+    // State
+    let premiumSessionId = null;
+    let premiumBusy = false;
+    let lastQuery = '';          // updated whenever a verification runs
+
+    // Elements
+    const premiumBanner = document.getElementById('premium-banner');
+    const openPremiumBtn = document.getElementById('open-premium-btn');
+    const premiumOverlay = document.getElementById('premium-overlay');
+    const premiumPanel = document.getElementById('premium-panel');
+    const closePremiumBtn = document.getElementById('close-premium-btn');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+
+    // Track last query + reset premium on new verification
+    form.addEventListener('submit', () => {
+        lastQuery = input.value.trim();
+        premiumSessionId = null;
+        premiumBanner.classList.add('hidden');
+    });
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    function setStatus(state, text) {
+        statusDot.className = 'status-dot ' + state;
+        statusText.textContent = text;
+    }
+
+    function appendBubble(role, text) {
+        const div = document.createElement('div');
+        div.className = 'chat-bubble ' + role;
+        div.textContent = text;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return div;
+    }
+
+    function clearChat() {
+        chatMessages.innerHTML = '';
+    }
+
+    function setInputEnabled(enabled) {
+        chatInput.disabled = !enabled;
+        chatSendBtn.disabled = !enabled;
+        if (enabled) chatInput.focus();
+    }
+
+    // ── Open panel ───────────────────────────────────────────────────────────
+
+    openPremiumBtn.addEventListener('click', async () => {
+        // Show panel
+        premiumOverlay.classList.remove('hidden');
+        premiumPanel.classList.remove('hidden');
+        clearChat();
+        setInputEnabled(false);
+
+        if (premiumSessionId) {
+            // Session already active — just open panel
+            setStatus('ready', 'Session active · 45 min expiry');
+            appendBubble('system-msg', '✨ Session resumed. Ask a follow-up question.');
+            setInputEnabled(true);
+            return;
+        }
+
+        // Start a new session
+        setStatus('connecting', 'Starting premium session…');
+        appendBubble('system-msg', '⚙️ Running verification pipeline, please wait…');
+
+        try {
+            const res = await fetch(`${API_BASE}/premium/start-session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: lastQuery })
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Failed to start premium session.');
+            }
+
+            const data = await res.json();
+            premiumSessionId = data.session_id;
+
+            clearChat();
+            setStatus('ready', 'Session active · 45 min expiry');
+            appendBubble('system-msg',
+                `✅ Verdict: ${data.verdict} · Score: ${Math.round(data.score * 100)}%\nSession started — ask anything about this verification.`
+            );
+            setInputEnabled(true);
+
+        } catch (err) {
+            setStatus('error', 'Session failed');
+            appendBubble('system-msg', '❌ ' + (err.message || 'Could not start session.'));
+        }
+    });
+
+    // ── Close panel ──────────────────────────────────────────────────────────
+
+    function closePanel() {
+        premiumPanel.classList.add('hidden');
+        premiumOverlay.classList.add('hidden');
+    }
+
+    closePremiumBtn.addEventListener('click', closePanel);
+    premiumOverlay.addEventListener('click', closePanel);
+
+    // Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !premiumPanel.classList.contains('hidden')) closePanel();
+    });
+
+    // ── Send message ─────────────────────────────────────────────────────────
+
+    async function sendMessage() {
+        const question = chatInput.value.trim();
+        if (!question || premiumBusy || !premiumSessionId) return;
+
+        premiumBusy = true;
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+        setInputEnabled(false);
+
+        appendBubble('user', question);
+
+        // Thinking indicator
+        const thinkingEl = document.createElement('div');
+        thinkingEl.className = 'chat-bubble thinking';
+        thinkingEl.innerHTML = '<span class="thinking-dots">Thinking</span>';
+        chatMessages.appendChild(thinkingEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        try {
+            const res = await fetch(`${API_BASE}/premium/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ session_id: premiumSessionId, question })
+            });
+
+            thinkingEl.remove();
+
+            if (res.status === 410) {
+                setStatus('error', 'Session expired');
+                appendBubble('system-msg', '⏰ Session expired. Close this panel, run a new verification, and reopen.');
+                premiumSessionId = null;
+                return;
+            }
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || 'Chat request failed.');
+            }
+
+            const data = await res.json();
+            appendBubble('assistant', data.answer);
+
+        } catch (err) {
+            thinkingEl.remove();
+            appendBubble('system-msg', '❌ ' + (err.message || 'Something went wrong.'));
+        } finally {
+            premiumBusy = false;
+            setInputEnabled(true);
+        }
+    }
+
+    chatSendBtn.addEventListener('click', sendMessage);
+
+    // Enter sends, Shift+Enter newline
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', () => {
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    });
+
+    // Hide premium banner initially (only shown after results)
+    premiumBanner.classList.add('hidden');
 });
+
